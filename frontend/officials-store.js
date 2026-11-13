@@ -177,15 +177,20 @@ export function loadOfficials() {
   return [...officialsCache];
 }
 
-// Notify existing Admin/Public listeners when the database data changes.
-function notifyOfficialsChanged() {
+// Last roster snapshot, used to skip re-renders when nothing changed.
+let lastSnapshot = '';
+
+// Notify listeners on this page. Only broadcast to other tabs when the
+// roster was actually edited here (never from a plain refresh, or the
+// tabs would keep refreshing each other forever).
+function notifyOfficialsChanged(broadcast = false) {
   window.dispatchEvent(
     new CustomEvent(OFFICIALS_SYNC_EVENT, {
       detail: [...officialsCache]
     })
   );
 
-  if (typeof BroadcastChannel !== 'undefined') {
+  if (broadcast && typeof BroadcastChannel !== 'undefined') {
     try {
       const channel = new BroadcastChannel(OFFICIALS_CHANNEL_NAME);
       channel.postMessage({
@@ -199,7 +204,7 @@ function notifyOfficialsChanged() {
 }
 
 // Load the shared roster from PostgreSQL.
-export async function loadOfficialsFromAPI() {
+export async function loadOfficialsFromAPI({ broadcast = false } = {}) {
   const response = await fetch(OFFICIALS_API_URL, {
     method: 'GET',
     credentials: 'include'
@@ -211,11 +216,18 @@ export async function loadOfficialsFromAPI() {
     throw new Error(data.message || 'Failed to load Barangay Officials.');
   }
 
-  officialsCache = (data.officials || [])
+  const next = (data.officials || [])
     .map(normalizeOfficial)
-    .sort((a, b) => a.displayOrder - b.displayOrder);
+    .sort((a, b) => (a.displayOrder - b.displayOrder) || (a.id - b.id));
 
-  notifyOfficialsChanged();
+  const snapshot = JSON.stringify(next);
+  const changed = snapshot !== lastSnapshot;
+
+  lastSnapshot = snapshot;
+  officialsCache = next;
+
+  // Re-render listeners only when the data really changed (or after an edit).
+  if (changed || broadcast) notifyOfficialsChanged(broadcast);
 
   return [...officialsCache];
 }
@@ -285,7 +297,7 @@ export async function updateOfficial(id, updatedFields) {
   }
 
   // Refresh the complete roster using PostgreSQL as the source of truth.
-  await loadOfficialsFromAPI();
+  await loadOfficialsFromAPI({ broadcast: true });
 
   return officialsCache.find(
     official => official.id === numericId
@@ -328,7 +340,7 @@ export async function resetOfficialsToDefault() {
     }
   }
 
-  return await loadOfficialsFromAPI();
+  return await loadOfficialsFromAPI({ broadcast: true });
 }
 
 // Subscribe to updates from this page and other tabs.
@@ -350,8 +362,9 @@ export function subscribeOfficials(callback) {
       broadcastChannel.onmessage = async (event) => {
         if (event.data?.type === 'OFFICIALS_UPDATED') {
           try {
-            const officials = await loadOfficialsFromAPI();
-            callback(officials);
+            // loadOfficialsFromAPI already dispatches the sync event,
+            // which calls the callback once if the data changed.
+            await loadOfficialsFromAPI();
           } catch (error) {
             console.error('Could not refresh officials:', error);
           }

@@ -1244,36 +1244,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // 7. Citizen Project Proposal Form Handler
-  if (projectProposalForm) {
-    projectProposalForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const title = (document.getElementById('proposalTitle')?.value || '').trim() || 'Citizen Community Proposal';
-      const proposalCode = 'PROP-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900);
-
-      try {
-        const stored = JSON.parse(localStorage.getItem('brgy360_proposals') || '[]');
-        stored.unshift({
-          id: proposalCode,
-          ref: proposalCode,
-          title: title,
-          category: 'Citizen Initiative',
-          dateFiled: new Date().toISOString().split('T')[0],
-          date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-          status: 'Pending'
-        });
-        localStorage.setItem('brgy360_proposals', JSON.stringify(stored));
-        window.dispatchEvent(new Event('storage'));
-      } catch (err) {}
-
-      showPublicToast(
-        'Project Proposal Received',
-        'Thank you! Your project proposal for "' + title + '" has been received.\nTracking ID: ' + proposalCode + '\nIt will be reviewed during the Barangay Development Council planning session.',
-        'success'
-      );
-      projectProposalForm.reset();
-    });
-  }
+  // Citizen proposals are submitted through the database-backed modal form below.
 
   // 8. Hero Background Slideshow
   const heroSlides = document.querySelectorAll('.hero-slide');
@@ -1692,34 +1663,9 @@ document.addEventListener('DOMContentLoaded', function () {
           successTrackingId.textContent = result.trackingCode;
         }
 
-        try {
-          const raw = localStorage.getItem('brgy360_proposals');
-          const list = raw ? JSON.parse(raw) : [];
-          const newProp = {
-            id: result.trackingCode || `PROP-${Date.now()}`,
-            ref: result.trackingCode || `PROP-${Date.now()}`,
-            proposalId: result.proposalId,
-            title: document.getElementById('modalProjectTitle')?.value.trim() || 'Community Proposal',
-            category: document.getElementById('modalProjectCategory')?.value || 'Infrastructure',
-            location: document.getElementById('modalProjectSitio')?.value || 'Sitio Ibaba',
-            sitio: document.getElementById('modalProjectSitio')?.value || 'Sitio Ibaba',
-            budget: parseFloat(document.getElementById('modalProjectBudget')?.value) || 0,
-            timeline: document.getElementById('modalProjectTimeline')?.value.trim() || 'Q1 2027',
-            rationale: document.getElementById('modalProjectRationale')?.value.trim() || '',
-            description: document.getElementById('modalProjectRationale')?.value.trim() || '',
-            proponent: document.getElementById('modalProponentName')?.value.trim() || 'Resident',
-            email: document.getElementById('modalProponentEmail')?.value.trim() || '',
-            status: 'Pending',
-            dateFiled: new Date().toISOString().split('T')[0],
-            date: new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
-          };
-          list.unshift(newProp);
-          localStorage.setItem('brgy360_proposals', JSON.stringify(list));
-          window.dispatchEvent(new Event('storage'));
-          window.dispatchEvent(new CustomEvent('brgy360_proposals_changed', { detail: list }));
-        } catch (storageErr) {
-          console.warn('Storage sync warning:', storageErr);
-        }
+        // PostgreSQL is the source of truth. Do not write a duplicate proposal
+        // into localStorage after the API confirms the submission.
+
 
         modalProposeForm.style.display = 'none';
         if (modalSuccessState) modalSuccessState.style.display = 'block';
@@ -2488,9 +2434,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
       return `
         <article class="announcement-card ${item.isEmergency ? 'emergency-card' : 'standard-card'}" data-id="${safeId}">
+          ${item.isEmergency ? `
+          <div class="emergency-top-banner">
+            <div class="emergency-banner-left">
+              <span class="emergency-pulse-dot"></span>
+              <span class="emergency-banner-text">Critical Advisory</span>
+            </div>
+            <span class="emergency-banner-tag">Action Required</span>
+          </div>` : ''}
           <div class="announcement-card-inner">
             <div class="announcement-meta-row">
-              <span class="meta-category-pill">${safeCategory}</span>
+              <span class="meta-category-pill ${item.isEmergency ? 'pill-emergency' : ''}">${safeCategory}</span>
               <span class="meta-date-item">${safeDate}</span>
             </div>
             <h3 class="announcement-card-title">${safeTitle}</h3>
@@ -2512,10 +2466,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const item = announcements.find(function (a) { return String(a.id) === String(id); });
     if (!item || !announcementDetailModal || !announcementModalContent) return;
 
+    const modalCard = announcementDetailModal.querySelector('.announcement-modal-card');
+    if (modalCard) modalCard.classList.toggle('is-critical', !!item.isEmergency);
+
     announcementModalContent.innerHTML = `
+      ${item.isEmergency ? '<div class="announcement-modal-header-banner"><span>🚨</span><span>Critical Advisory</span></div>' : ''}
       <div class="announcement-modal-scrollable">
         <div class="modal-meta-bar">
-          <span class="meta-category-pill">${escapeAnnouncementHtml(item.category)}</span>
+          <span class="meta-category-pill ${item.isEmergency ? 'pill-emergency' : ''}">${escapeAnnouncementHtml(item.category)}</span>
           <span>Published: ${escapeAnnouncementHtml(item.date)}</span>
         </div>
         <h2 class="modal-announcement-title">${escapeAnnouncementHtml(item.title)}</h2>
