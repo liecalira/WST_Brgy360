@@ -5285,29 +5285,23 @@ function syncAllStoresFromStorage(changedKey) {
           let footerActions = '';
           if (p.status === 'Pending') {
             footerActions = `
-              <button type="button" class="btn-prop-action btn-prop-approve" data-id="${p.id || p.ref}" title="Approve proposal">Approve</button>
               <button type="button" class="btn-prop-action btn-prop-under-review" data-id="${p.id || p.ref}" title="Mark Under Review">Under Review</button>
-              <button type="button" class="btn-prop-action btn-prop-reject" data-id="${p.id || p.ref}" title="Reject proposal">Reject</button>
               <button type="button" class="btn-prop-action btn-prop-review" data-id="${p.id || p.ref}">Review Details</button>
             `;
           } else if (p.status === 'Under Review') {
             footerActions = `
-              <button type="button" class="btn-prop-action btn-prop-approve" data-id="${p.id || p.ref}" title="Approve proposal">Approve</button>
-              <button type="button" class="btn-prop-action btn-prop-reject" data-id="${p.id || p.ref}" title="Reject proposal">Reject</button>
               <button type="button" class="btn-prop-action btn-prop-review" data-id="${p.id || p.ref}">Review Details</button>
             `;
           } else if (p.status === 'Approved') {
             footerActions = `
               <span style="font-size: 11.5px; font-weight: 600; color: #16a34a; margin-right: 4px;">✓ Approved</span>
               <button type="button" class="btn-prop-action btn-prop-under-review" data-id="${p.id || p.ref}" title="Mark Under Review">Under Review</button>
-              <button type="button" class="btn-prop-action btn-prop-reject" data-id="${p.id || p.ref}" title="Reject proposal">Reject</button>
               <button type="button" class="btn-prop-action btn-prop-review" data-id="${p.id || p.ref}">Review Details</button>
             `;
           } else {
             // Rejected
             footerActions = `
               <span style="font-size: 11.5px; font-weight: 600; color: #e11d48; margin-right: 4px;">✕ Rejected</span>
-              <button type="button" class="btn-prop-action btn-prop-approve" data-id="${p.id || p.ref}" title="Reconsider and approve">Approve</button>
               <button type="button" class="btn-prop-action btn-prop-under-review" data-id="${p.id || p.ref}" title="Mark Under Review">Under Review</button>
               <button type="button" class="btn-prop-action btn-prop-review" data-id="${p.id || p.ref}">Review Details</button>
             `;

@@ -22,6 +22,20 @@
   <link rel="stylesheet" href="announcements.css">
   <link rel="stylesheet" href="reports.css">
   <link rel="stylesheet" href="auth.css">
+  <style>
+    /* Fix: peso sign overlapping the budget amount in the "Propose a Project" modal */
+    .budget-input-wrapper { position: relative; }
+    .budget-input-wrapper .currency-prefix {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      z-index: 1;
+      line-height: 1;
+    }
+    .budget-input-wrapper .modal-input.budget-input { padding-left: 36px; }
+  </style>
   <!-- Universal Authentication & Route Guard -->
   <script type="module" src="./auth.js"></script>
   <!-- Chart.js CDN for trend chart -->
