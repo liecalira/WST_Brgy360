@@ -477,8 +477,8 @@ async function loadResidentProfile() {
     return list;
   }
 
-  let allServiceRequests = loadAllServiceRequests();
-  let userRequests = allServiceRequests.filter(r => isRequestOwnedByUser(r, currentUser));
+  let allServiceRequests = [];
+  let userRequests = [];
 
   async function loadMyServiceRequestsFromAPI() {
   try {
@@ -574,8 +574,8 @@ return Array.isArray(result.concerns)
     return normalized;
   }
 
-  let allConcerns = loadAndSyncAllConcerns();
-  let userConcerns = allConcerns.filter(c => isConcernOwnedByUser(c, currentUser));
+  let allConcerns = [];
+  let userConcerns = [];
   
   async function refreshUserConcernsState() {
     const apiConcerns = await loadMyConcernsFromAPI();

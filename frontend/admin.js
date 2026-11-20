@@ -990,17 +990,28 @@ async function loadAdminBudgetRecordsFromDatabase() {
     return filePath;
   }
 
-  // Normalize the saved path and remove any leading slash.
-  const normalizedPath = String(filePath)
+  // Normalize slashes (handles Windows paths like C:\app\uploads\ids\file.jpg).
+  let normalizedPath = String(filePath)
+    .trim()
     .replace(/\\/g, '/')
     .replace(/^\/+/, '');
 
-  // The backend serves files from its /uploads route.
-  const fileName = normalizedPath.startsWith('uploads/')
-    ? normalizedPath.slice('uploads/'.length)
-    : normalizedPath;
+  // If the path contains an "uploads/" folder anywhere (relative or absolute),
+  // keep only what comes after the LAST "uploads/".
+  const uploadsIdx = normalizedPath.toLowerCase().lastIndexOf('uploads/');
+  if (uploadsIdx !== -1) {
+    normalizedPath = normalizedPath.slice(uploadsIdx + 'uploads/'.length);
+  }
 
-  return `${ADMIN_API_BASE.replace(/\/api\/?$/, '')}/uploads/${encodeURIComponent(fileName)}`;
+  // Encode each folder/file name separately so "/" stays a real path separator.
+  // (encodeURIComponent on the whole path turned "ids/file.jpg" into "ids%2Ffile.jpg", which 404s.)
+  const encodedPath = normalizedPath
+    .split('/')
+    .filter(Boolean)
+    .map(encodeURIComponent)
+    .join('/');
+
+  return `${ADMIN_API_BASE.replace(/\/api\/?$/, '')}/uploads/${encodedPath}`;
 }
 
   async function loadGeographicBreakdownFromAPI() {
