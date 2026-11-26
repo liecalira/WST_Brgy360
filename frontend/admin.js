@@ -982,37 +982,41 @@ async function loadAdminBudgetRecordsFromDatabase() {
     }
   }
   
-  function getResidentDocumentUrl(filePath) {
-  if (!filePath) return '';
+  
+function getResidentDocumentUrl(filePath) {
+    if (!filePath) return '';
 
-  // If the backend already returned a full URL, use it.
-  if (/^https?:\/\//i.test(filePath)) {
-    return filePath;
-  }
+    // If the backend already returned a full URL, use it.
+    if (/^https?:\/\//i.test(filePath)) {
+        return filePath;
+    }
 
-  // Normalize slashes (handles Windows paths like C:\app\uploads\ids\file.jpg).
-  let normalizedPath = String(filePath)
-    .trim()
-    .replace(/\\/g, '/')
-    .replace(/^\/+/, '');
+    // Normalize slashes (handles Windows paths).
+    let normalizedPath = String(filePath)
+        .trim()
+        .replace(/\\/g, '/')
+        .replace(/^\/+/, '');
 
-  // If the path contains an "uploads/" folder anywhere (relative or absolute),
-  // keep only what comes after the LAST "uploads/".
-  const uploadsIdx = normalizedPath.toLowerCase().lastIndexOf('uploads/');
-  if (uploadsIdx !== -1) {
-    normalizedPath = normalizedPath.slice(uploadsIdx + 'uploads/'.length);
-  }
+    // Keep only the path after the last uploads/ folder.
+    const uploadsIdx = normalizedPath.toLowerCase().lastIndexOf('uploads/');
 
-  // Encode each folder/file name separately so "/" stays a real path separator.
-  // (encodeURIComponent on the whole path turned "ids/file.jpg" into "ids%2Ffile.jpg", which 404s.)
-  const encodedPath = normalizedPath
-    .split('/')
-    .filter(Boolean)
-    .map(encodeURIComponent)
-    .join('/');
+    if (uploadsIdx !== -1) {
+        normalizedPath = normalizedPath.slice(uploadsIdx + 'uploads/'.length);
+    }
 
-  return `${ADMIN_API_BASE.replace(/\/api\/?$/, '')}/uploads/${encodedPath}`;
+    // Encode each folder/file name separately.
+    const encodedPath = normalizedPath
+        .split('/')
+        .filter(Boolean)
+        .map(encodeURIComponent)
+        .join('/');
+
+    return `${ADMIN_API_BASE.replace(/\/api\/?$/, '')}/uploads/${encodedPath}`;
 }
+
+  function isResidentPdf(filePath) {
+      return /\.pdf(?:[?#]|$)/i.test(String(filePath || '').trim());
+  }
 
   async function loadGeographicBreakdownFromAPI() {
     const tableBody = document.getElementById('geographicBreakdownTableBody');
@@ -9056,91 +9060,124 @@ if (projBeneficiariesInput) {
     const nameInfo = parseNameWithSuffix(app.fullName);
     const idPreviewBox = document.getElementById('resReviewIdPreviewBox');
 
-if (idPreviewBox) {
-  const idDocumentUrl = getResidentDocumentUrl(app.idFilePath);
+    if (idPreviewBox) {
+        const idDocumentUrl = getResidentDocumentUrl(app.idFilePath);
+        const isPdf = isResidentPdf(app.idFilePath);
 
-  if (idDocumentUrl) {
-    idPreviewBox.innerHTML = `
-      <div style="display:flex; flex-direction:column; align-items:center; padding:12px; background:#ffffff; border-radius:8px; width:100%;">
-        <img
-          src="${escapeHtml(idDocumentUrl)}"
-          alt="Submitted Government ID"
-          style="max-height:190px; max-width:100%; object-fit:contain; border-radius:6px;"
-          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-        >
-        <div style="display:none; color:#fca5a5; padding:12px; text-align:center;">
-          Unable to load the submitted ID file.
-        </div>
-        <div style="margin-top:10px; font-size:12px; color:#0f172a; width:100%;">
-          📎 ${escapeHtml(app.idType || 'Government ID')}
-        </div>
-        <a
-          href="${escapeHtml(idDocumentUrl)}"
-          target="_blank"
-          rel="noopener noreferrer"
-          style="margin-top:8px; color:#0369a1; font-size:12px;"
-        >
-          Open Original Document
-        </a>
-      </div>
-    `;
-  } else {
-    idPreviewBox.innerHTML = `
-      <div style="padding:20px; text-align:center; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px;">
-        <div style="font-weight:600; color:#334155;">No Government ID File Found</div>
-        <div style="font-size:12px; color:#64748b; margin-top:4px;">
-          No ID attachment path was returned for this resident.
-        </div>
-      </div>
-    `;
-  }
-}
+        if (idDocumentUrl) {
+            idPreviewBox.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; padding:12px; background:#ffffff; border-radius:8px; width:100%;">
+
+                    ${
+                        isPdf
+                        ? `
+                            <iframe
+                                src="${escapeHtml(idDocumentUrl)}#toolbar=0&navpanes=0&scrollbar=1"
+                                title="Submitted Government ID PDF"
+                                style="width:100%; height:500px; border:none; border-radius:6px; background:#f8fafc;"
+                            ></iframe>
+                        `
+                        : `
+                            <img
+                                src="${escapeHtml(idDocumentUrl)}"
+                                alt="Submitted Government ID"
+                                style="max-height:190px; max-width:100%; object-fit:contain; border-radius:6px;"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                            >
+                            <div style="display:none; color:#fca5a5; padding:12px; text-align:center;">
+                                Unable to load the submitted ID file.
+                            </div>
+                        `
+                    }
+
+                    <div style="margin-top:10px; font-size:12px; color:#0f172a; width:100%;">
+                        📎 ${escapeHtml(app.idType || 'Government ID')}
+                        ${isPdf ? ' (PDF)' : ''}
+                    </div>
+
+                    <a
+                        href="${escapeHtml(idDocumentUrl)}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style="margin-top:8px; color:#0369a1; font-size:12px;"
+                    >
+                        Open Original Document
+                    </a>
+                </div>
+            `;
+        } else {
+            idPreviewBox.innerHTML = `
+                <div style="padding:20px; text-align:center; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px;">
+                    <div style="font-weight:600; color:#334155;">No Government ID File Found</div>
+                    <div style="font-size:12px; color:#64748b; margin-top:4px;">
+                        No ID attachment path was returned for this resident.
+                    </div>
+                </div>
+            `;
+        }
+    }
 
 // Populate Proof of Residency with the original uploaded document
 const proofPreviewBox = document.getElementById('resReviewProofPreviewBox');
 
 if (proofPreviewBox) {
-  const proofDocumentUrl = getResidentDocumentUrl(app.residencyProofPath);
+    const proofDocumentUrl = getResidentDocumentUrl(app.residencyProofPath);
+    const isPdf = isResidentPdf(app.residencyProofPath);
 
-  if (proofDocumentUrl) {
-    proofPreviewBox.innerHTML = `
-      <div style="display:flex; flex-direction:column; align-items:center; padding:12px; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; width:100%;">
-        <img
-          src="${escapeHtml(proofDocumentUrl)}"
-          alt="Submitted Proof of Residency"
-          style="max-height:190px; max-width:100%; object-fit:contain; border-radius:6px;"
-          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-        >
-        <div style="display:none; color:#b91c1c; padding:12px; text-align:center;">
-          Unable to load the submitted proof document.
-        </div>
-        <div style="margin-top:10px; font-size:12px; color:#0f172a; width:100%;">
-          📎 ${escapeHtml(app.proofType || 'Proof of Residency')}
-        </div>
-        <a
-          href="${escapeHtml(proofDocumentUrl)}"
-          target="_blank"
-          rel="noopener noreferrer"
-          style="margin-top:8px; color:#0369a1; font-size:12px;"
-        >
-          Open Original Document
-        </a>
-      </div>
-    `;
-  } else {
-    proofPreviewBox.innerHTML = `
-      <div style="padding:24px 18px; text-align:center; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px;">
-        <div style="font-weight:600; color:#334155; font-size:13px;">
-          No Proof of Residency
-        </div>
-        <div style="font-size:12px; color:#64748b; margin-top:4px;">
-          The applicant did not attach an optional proof-of-residency document.
-        </div>
-      </div>
-    `;
-  }
+    if (proofDocumentUrl) {
+        proofPreviewBox.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; padding:12px; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; width:100%;">
+
+                ${
+                    isPdf
+                    ? `
+                        <iframe
+                            src="${escapeHtml(proofDocumentUrl)}#toolbar=0&navpanes=0&scrollbar=1"
+                            title="Submitted Proof of Residency PDF"
+                            style="width:100%; height:500px; border:none; border-radius:6px; background:#f8fafc;"
+                        ></iframe>
+                    `
+                    : `
+                        <img
+                            src="${escapeHtml(proofDocumentUrl)}"
+                            alt="Submitted Proof of Residency"
+                            style="max-height:190px; max-width:100%; object-fit:contain; border-radius:6px;"
+                            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                        >
+                        <div style="display:none; color:#b91c1c; padding:12px; text-align:center;">
+                            Unable to load the submitted proof document.
+                        </div>
+                    `
+                }
+
+                <div style="margin-top:10px; font-size:12px; color:#0f172a; width:100%;">
+                    📎 ${escapeHtml(app.proofType || 'Proof of Residency')}
+                    ${isPdf ? ' (PDF)' : ''}
+                </div>
+
+                <a
+                    href="${escapeHtml(proofDocumentUrl)}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="margin-top:8px; color:#0369a1; font-size:12px;"
+                >
+                    Open Original Document
+                </a>
+            </div>
+        `;
+    } else {
+        proofPreviewBox.innerHTML = `
+            <div style="padding:24px 18px; text-align:center; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:8px;">
+                <div style="font-weight:600; color:#334155; font-size:13px;">
+                    No Proof of Residency
+                </div>
+                <div style="font-size:12px; color:#64748b; margin-top:4px;">
+                    The applicant did not attach a proof-of-residency document.
+                </div>
+            </div>
+        `;
+    }
 }
-
     // Workflow Action Controls Configuration
     const auditStatus = document.getElementById('resReviewAuditStatus');
     const auditDot = document.querySelector('#resReviewModal .res-modal-audit-note .status-pill-dot');
@@ -9379,36 +9416,56 @@ async function approveResidentAccount(appId) {
     viewport.innerHTML = '';
     currentLightboxZoom = 1;
     currentLightboxRotation = 0;
-    applyLightboxTransform();
 
     if (type === 'id') {
-      if (titleEl) titleEl.textContent = 'Government Identification Preview & Inspection';
-      const uploadedImg = document.querySelector('#resReviewIdPreviewBox img');
-      if (uploadedImg) {
-        const cloned = uploadedImg.cloneNode(true);
-        cloned.style.maxHeight = '70vh';
-        cloned.style.maxWidth = '90vw';
-        viewport.appendChild(cloned);
-      } else {
-        const source = document.querySelector('#resReviewIdPreviewBox .res-id-graphic');
-        if (source) viewport.appendChild(source.cloneNode(true));
-      }
+        if (titleEl) {
+            titleEl.textContent = 'Government Identification Preview & Inspection';
+        }
+
+        const previewBox = document.getElementById('resReviewIdPreviewBox');
+        const source = previewBox?.querySelector('iframe, img');
+
+        if (source) {
+            const cloned = source.cloneNode(true);
+
+            if (cloned.tagName === 'IFRAME') {
+                cloned.style.width = '90vw';
+                cloned.style.height = '75vh';
+                cloned.style.border = 'none';
+            } else {
+                cloned.style.maxHeight = '70vh';
+                cloned.style.maxWidth = '90vw';
+            }
+
+            viewport.appendChild(cloned);
+        }
     } else {
-      if (titleEl) titleEl.textContent = 'Proof of Residency Document Inspection';
-      const uploadedImg = document.querySelector('#resReviewProofPreviewBox img');
-      if (uploadedImg) {
-        const cloned = uploadedImg.cloneNode(true);
-        cloned.style.maxHeight = '70vh';
-        cloned.style.maxWidth = '90vw';
-        viewport.appendChild(cloned);
-      } else {
-        const source = document.querySelector('#resReviewProofPreviewBox .res-proof-graphic') || document.querySelector('#resReviewProofPreviewBox > div');
-        if (source) viewport.appendChild(source.cloneNode(true));
-      }
+        if (titleEl) {
+            titleEl.textContent = 'Proof of Residency Document Inspection';
+        }
+
+        const previewBox = document.getElementById('resReviewProofPreviewBox');
+        const source = previewBox?.querySelector('iframe, img');
+
+        if (source) {
+            const cloned = source.cloneNode(true);
+
+            if (cloned.tagName === 'IFRAME') {
+                cloned.style.width = '90vw';
+                cloned.style.height = '75vh';
+                cloned.style.border = 'none';
+            } else {
+                cloned.style.maxHeight = '70vh';
+                cloned.style.maxWidth = '90vw';
+            }
+
+            viewport.appendChild(cloned);
+        }
     }
 
+    applyLightboxTransform();
     lightbox.classList.add('active');
-  }
+}
 
   // Export Registry CSV
   function exportResidentRegistryCsv() {

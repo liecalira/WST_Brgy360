@@ -3733,48 +3733,6 @@ setInterval(loadResidentNotifications, 30000);
     const confirmPwdErr = document.getElementById('confirmNewPasswordError');
     const bannerErr = document.getElementById('passwordErrorMsg');
 
-    function getActiveUserPassword() {
-      // 1. In-memory currentUser password
-      if (currentUser && currentUser.password) {
-        return currentUser.password;
-      }
-
-      // 2. Stored user object in localStorage 'brgy360_user'
-      try {
-        const stored = JSON.parse(localStorage.getItem('brgy360_user') || '{}');
-        if (stored && stored.password) {
-          return stored.password;
-        }
-      } catch (e) {}
-
-      // 3. User account created in registration database ('brgy360_residents_db')
-      try {
-        const email = (currentUser?.email || '').trim().toLowerCase();
-        const residentsDb = JSON.parse(localStorage.getItem('brgy360_residents_db') || '[]');
-        if (email && Array.isArray(residentsDb)) {
-          const found = residentsDb.find(u => u.email && u.email.trim().toLowerCase() === email);
-          if (found && found.password) {
-            return found.password;
-          }
-        }
-      } catch (e) {}
-
-      // 4. Session info check against resident database
-      try {
-        const session = JSON.parse(localStorage.getItem('brgy360_session') || '{}');
-        const sessionEmail = (session?.email || '').trim().toLowerCase();
-        if (sessionEmail) {
-          const residentsDb = JSON.parse(localStorage.getItem('brgy360_residents_db') || '[]');
-          const found = residentsDb.find(u => u.email && u.email.trim().toLowerCase() === sessionEmail);
-          if (found && found.password) {
-            return found.password;
-          }
-        }
-      } catch (e) {}
-
-      return DEFAULT_USER.password || '';
-    }
-
     function setFieldError(inputEl, errorEl, message) {
       if (inputEl) inputEl.classList.add('input-error');
       if (errorEl) {
@@ -3838,27 +3796,18 @@ setInterval(loadResidentNotifications, 30000);
       e.preventDefault();
       clearAllPasswordErrors();
 
-      const cur = (curInput?.value || '').trim();
+      const cur = curInput?.value || '';
       const p1 = newPwdInput?.value || '';
       const p2 = confirmPwdInput?.value || '';
 
       let hasError = false;
       let firstInvalidInput = null;
 
-      // 1. Verify that Current Password is entered and EXACTLY MATCHES the password set during creation/registration
-      const expectedPassword = getActiveUserPassword();
+      // 1. Validate that Current Password is entered.
       if (!cur) {
-        setFieldError(curInput, curErr, 'Please enter your current password.');
-        hasError = true;
-        if (!firstInvalidInput) firstInvalidInput = curInput;
-      } else if (cur !== expectedPassword) {
-        setFieldError(curInput, curErr, 'The current password entered is incorrect. It must match the password set when your account was created.');
-        if (bannerErr) {
-          bannerErr.textContent = 'Current password verification failed. Please enter the password you created your account with.';
-          bannerErr.style.display = 'block';
-        }
-        hasError = true;
-        if (!firstInvalidInput) firstInvalidInput = curInput;
+          setFieldError(curInput, curErr, 'Please enter your current password.');
+          hasError = true;
+          if (!firstInvalidInput) firstInvalidInput = curInput;
       }
 
       // 2. Verify that New Password meets security requirements
@@ -3925,6 +3874,17 @@ try {
         if (bannerErr) {
             bannerErr.textContent =
                 'The server returned an unexpected response. Please check the backend.';
+            bannerErr.style.display = 'block';
+        }
+
+        return;
+    }
+
+    // Check whether the backend actually updated the password.
+    if (!response.ok || result.success !== true) {
+        if (bannerErr) {
+            bannerErr.textContent =
+                result.message || 'Unable to update your password. Please try again.';
             bannerErr.style.display = 'block';
         }
 

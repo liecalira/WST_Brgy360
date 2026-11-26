@@ -22,11 +22,9 @@
   <link rel="stylesheet" href="announcements.css">
   <link rel="stylesheet" href="reports.css">
   <link rel="stylesheet" href="auth.css">
-<<<<<<< HEAD
-  <style>
-=======
   <!-- Leaflet (OpenStreetMap map library) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
   <style>
     /* OpenStreetMap modal */
     .map-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.65); backdrop-filter: blur(6px); z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity .25s ease; }
@@ -53,7 +51,6 @@
     /* Google Maps nav button (sits beside Login / Register) */
     .nav-btn-map { display: inline-flex; align-items: center; gap: 6px; }
     #navMapSlot { margin-right: 8px; }
->>>>>>> 029fd38 (Nov 20 Updates)
     /* Fix: peso sign overlapping the budget amount in the "Propose a Project" modal */
     .budget-input-wrapper { position: relative; }
     .budget-input-wrapper .currency-prefix {
@@ -695,8 +692,8 @@
         <div class="projects-trend-block">
           <div class="trend-header">
             <div>
-              <h3 class="trend-title">Completion Rate Trend by Year</h3>
-              <p class="trend-subtitle">Year-over-year completion velocity tracking historical 2025 and active 2026 projects</p>
+              <h3 class="trend-title">Project Progress Rate Trend by Year</h3>
+              <p class="trend-subtitle">Year-over-year progress velocity tracking historical 2025 and active 2026 projects</p>
             </div>
             <div class="trend-legend">
               <span class="legend-indicator"></span>
@@ -1475,7 +1472,7 @@
 
         <!-- Dynamic Result Count Display -->
         <div class="announcements-feed-count" id="announcementsFeedCount">
-          <span>6 Announcements</span>
+          <span>Announcements</span>
         </div>
       </div>
 
@@ -1535,7 +1532,7 @@
           <div class="auth-field-group">
             <div class="auth-label-row">
               <label for="loginPassword" class="auth-label">Password</label>
-              <a href="#forgot" class="auth-link-sm" id="linkForgotPassword">Forgot password?</a>
+              <a href="#" class="auth-link-sm" id="linkForgotPassword">Forgot password?</a>
             </div>
             <div class="auth-input-wrapper">
               <svg class="auth-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1574,6 +1571,82 @@
           <span>Don't have an account?</span>
           <button type="button" class="auth-switch-link" id="switchToRegisterBtn">Create an Account</button>
         </div>
+      </div>
+
+
+      <!-- VIEW 2: FORGOT PASSWORD FORM -->
+      <div id="forgot-password-view" class="auth-view" style="display: none;">
+
+        <div class="auth-header">
+          <div class="auth-icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"
+              fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+              <polyline points="3,7 12,13 21,7"></polyline>
+            </svg>
+          </div>
+
+          <h2 class="auth-heading">Forgot Your Password?</h2>
+          <p class="auth-subtitle">
+            Enter the email address associated with your account.
+            We'll send you a link to reset your password.
+          </p>
+        </div>
+
+        <form id="forgotPasswordForm" novalidate>
+
+          <div class="auth-feedback-banner"
+            id="forgotPasswordFeedback"
+            style="display: none;"
+            role="alert">
+          </div>
+
+          <div class="auth-field-group">
+            <label for="forgotPasswordEmail" class="auth-label">
+              Registered Email
+            </label>
+
+            <div class="auth-input-wrapper">
+              <svg class="auth-field-icon" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"
+                aria-hidden="true">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+
+              <input
+                type="email"
+                id="forgotPasswordEmail"
+                class="auth-input"
+                placeholder="you@example.com"
+                required
+                autocomplete="email">
+            </div>
+
+            <span class="auth-error-text"
+              id="forgotPasswordEmailError"></span>
+          </div>
+
+          <button
+            type="submit"
+            class="auth-btn-primary"
+            id="btnForgotPasswordSubmit">
+            Send Reset Link
+          </button>
+
+        </form>
+
+        <div class="auth-bottom-switch">
+          <button
+            type="button"
+            class="auth-switch-link"
+            id="backToLoginFromForgot">
+            &larr; Back to Login
+          </button>
+        </div>
+
       </div>
 
       <!-- VIEW 2: REGISTRATION FORM (#register-view - initially hidden) -->

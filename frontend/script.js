@@ -42,6 +42,18 @@ document.addEventListener('DOMContentLoaded', function () {
   const loginForm = document.getElementById('loginForm');
   const registerForm = document.getElementById('registerForm');
 
+  // ==========================================
+  // FORGOT PASSWORD ELEMENTS
+  // ==========================================
+  const linkForgotPassword = document.getElementById('linkForgotPassword');
+  const forgotPasswordView = document.getElementById('forgot-password-view');
+  const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+  const forgotPasswordEmail = document.getElementById('forgotPasswordEmail');
+  const forgotPasswordFeedback = document.getElementById('forgotPasswordFeedback');
+  const forgotPasswordEmailError = document.getElementById('forgotPasswordEmailError');
+  const btnForgotPasswordSubmit = document.getElementById('btnForgotPasswordSubmit');
+  const backToLoginFromForgot = document.getElementById('backToLoginFromForgot');
+
   // Interactive Forms
   const docServiceForm = document.getElementById('docServiceForm');
   const complaintReportForm = document.getElementById('complaintReportForm');
@@ -171,6 +183,61 @@ document.addEventListener('DOMContentLoaded', function () {
     resetPasswordVisibility(authModal);
   }
 
+  // ==========================================
+  // FORGOT PASSWORD VIEW
+  // ==========================================
+
+  function showForgotPasswordView() {
+      const loginView = document.getElementById('login-view');
+      const registerView = document.getElementById('register-view');
+
+      if (loginView) loginView.style.display = 'none';
+      if (registerView) registerView.style.display = 'none';
+      if (forgotPasswordView) forgotPasswordView.style.display = 'block';
+
+      if (forgotPasswordFeedback) {
+          forgotPasswordFeedback.style.display = 'none';
+          forgotPasswordFeedback.textContent = '';
+      }
+
+      if (forgotPasswordEmailError) {
+          forgotPasswordEmailError.textContent = '';
+      }
+  }
+
+  function showLoginFromForgotPassword() {
+      const loginView = document.getElementById('login-view');
+
+      if (forgotPasswordView) {
+          forgotPasswordView.style.display = 'none';
+      }
+
+      if (loginView) {
+          loginView.style.display = 'block';
+      }
+
+      if (forgotPasswordFeedback) {
+          forgotPasswordFeedback.style.display = 'none';
+          forgotPasswordFeedback.textContent = '';
+      }
+  }
+
+  if (linkForgotPassword && forgotPasswordView) {
+      linkForgotPassword.addEventListener('click', function (e) {
+          e.preventDefault();
+
+          document.getElementById('login-view').style.display = 'none';
+          document.getElementById('register-view').style.display = 'none';
+          forgotPasswordView.style.display = 'block';
+      });
+  }
+
+  if (backToLoginFromForgot) {
+      backToLoginFromForgot.addEventListener('click', function () {
+          showLoginFromForgotPassword();
+      });
+  }
+
   function getActiveSessionInfo() {
     const rawSession = localStorage.getItem('brgy360_session');
     const currentRole = localStorage.getItem('currentUserRole');
@@ -187,34 +254,45 @@ document.addEventListener('DOMContentLoaded', function () {
     return { active: false, role: null };
   }
 
-  function openAuthModal(view, forceOpen = false) {
-    const sessionInfo = getActiveSessionInfo();
-    if (!forceOpen && sessionInfo.active) {
-      window.location.href = sessionInfo.role === 'admin' ? 'admin.html' : 'user.html';
-      return;
-    }
-    if (!authModal) return;
+  function openAuthModal(view = 'login') {
     authModal.classList.add('active');
     document.body.classList.add('auth-modal-open');
     authModal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    if (view === 'register') {
-      showRegisterView();
-    } else {
-      showLoginView();
+
+    // Always hide Forgot Password when reopening the modal
+    if (forgotPasswordView) {
+        forgotPasswordView.style.display = 'none';
     }
-  }
+
+    if (view === 'register') {
+        showRegisterView();
+    } else {
+        showLoginView();
+    }
+}
 
   function closeAuthModal() {
     if (!authModal) return;
+
     authModal.classList.remove('active');
     document.body.classList.remove('auth-modal-open');
+
+    if (authModal.contains(document.activeElement)) {
+        document.activeElement.blur();
+    }
+    
     authModal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
     document.documentElement.style.overflow = 'auto';
+
+    if (forgotPasswordView) {
+        forgotPasswordView.style.display = 'none';
+    }
+
     clearAuthFeedback();
     resetPasswordVisibility(authModal);
-  }
+}
 
   // ==========================================================
   // LOGGED-IN SESSION STATE SYNCHRONIZATION ON PUBLIC VIEW
@@ -388,6 +466,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // 3. Client-Side Validation: Login Form
   const loginEmail = document.getElementById('loginEmail');
   const loginPassword = document.getElementById('loginPassword');
+  const loginRememberMe = document.getElementById('loginRememberMe');
   const loginEmailError = document.getElementById('loginEmailError');
   const loginPasswordError = document.getElementById('loginPasswordError');
   const loginFeedback = document.getElementById('loginFeedback');
@@ -469,7 +548,10 @@ document.addEventListener('DOMContentLoaded', function () {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailLower, password: passVal })
+          body: JSON.stringify({
+    email: emailLower,
+    password: passVal,
+    rememberMe: document.getElementById('loginRememberMe')?.checked === true})
         });
 
         const adminData = await adminResp.json().catch(() => ({}));
@@ -505,12 +587,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
       // Resident Authentication
       try {
-        const response = await fetch('http://localhost:5000/api/auth/login', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: emailLower, password: passVal })
-        });
+          const response = await fetch('http://localhost:5000/api/auth/login', {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                  email: emailLower,
+                  password: passVal,
+                  rememberMe: document.getElementById('loginRememberMe')?.checked === true
+              })
+          });
 
         const result = await response.json().catch(() => ({}));
 
@@ -563,6 +651,77 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       }
     });
+  }
+
+  // ==========================================
+  // FORGOT PASSWORD SUBMISSION
+  // ==========================================
+
+  if (forgotPasswordForm) {
+      forgotPasswordForm.addEventListener('submit', async function (event) {
+          event.preventDefault();
+
+          const email = forgotPasswordEmail.value.trim().toLowerCase();
+
+          if (forgotPasswordEmailError) {
+              forgotPasswordEmailError.textContent = '';
+          }
+
+          if (forgotPasswordFeedback) {
+              forgotPasswordFeedback.style.display = 'none';
+              forgotPasswordFeedback.textContent = '';
+          }
+
+          if (!email) {
+              if (forgotPasswordEmailError) {
+                  forgotPasswordEmailError.textContent = 'Please enter your registered email address.';
+              }
+              return;
+          }
+
+          const originalButtonText = btnForgotPasswordSubmit.textContent;
+
+          btnForgotPasswordSubmit.disabled = true;
+          btnForgotPasswordSubmit.textContent = 'Sending...';
+
+          try {
+              const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json'
+                  },
+                  credentials: 'include',
+                  body: JSON.stringify({ email })
+              });
+
+              const data = await response.json();
+
+              if (!response.ok) {
+                  throw new Error(data.message || 'Unable to process your request.');
+              }
+
+              forgotPasswordFeedback.textContent =
+                  data.message || 'If your account exists, a password reset link will be sent to your email.';
+
+              forgotPasswordFeedback.style.display = 'block';
+              forgotPasswordFeedback.classList.remove('error');
+              forgotPasswordFeedback.classList.add('success');
+
+          } catch (error) {
+              console.error('Forgot password error:', error);
+
+              forgotPasswordFeedback.textContent =
+                  error.message || 'Something went wrong. Please try again.';
+
+              forgotPasswordFeedback.style.display = 'block';
+              forgotPasswordFeedback.classList.remove('success');
+              forgotPasswordFeedback.classList.add('error');
+
+          } finally {
+              btnForgotPasswordSubmit.disabled = false;
+              btnForgotPasswordSubmit.textContent = originalButtonText;
+          }
+      });
   }
 
   // 4. Client-Side Validation & File Management: Registration Form
